@@ -1,45 +1,341 @@
-<!--
-  Hit RUN to see this project in action!
-  
-  This project will auto-refresh as you edit the HTML, CSS and JS. See README.md for more info (including how to disable auto-refresh and install packages).
--->
-
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width">
-  <title>Replit</title>
-  <link href="style.css" rel="stylesheet" type="text/css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>YouTube Video Downloader</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f1f1f1;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h1 {
+      color: #e62117;
+      text-align: center;
+    }
+
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+      margin-bottom: 20px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #e62117;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #c91410;
+    }
+
+    .result {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .result img {
+      max-width: 250px;
+      height: auto;
+      margin: 10px auto;
+      display: block;
+      border-radius: 8px;
+    }
+
+    .download-btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #28a745;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: background 0.3s;
+      margin-right: 8px;
+    }
+
+    .download-btn:hover {
+      background: #218838;
+    }
+
+    #downloadAnotherBtn {
+      margin-top: 20px;
+      background: #007bff;
+      border-radius: 8px;
+    }
+
+    #downloadAnotherBtn:hover {
+      background: #0056b3;
+    }
+
+    #searchResults {
+      margin-top: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    #searchResults div {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      background: #fafafa;
+      transition: background 0.2s;
+    }
+
+    #searchResults div:hover {
+      background: #eee;
+    }
+
+    #searchResults img {
+      width: 80px;
+      height: 45px;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+
+    /* Spinner styles */
+    .spinner {
+      margin: 20px auto;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #ccc;
+      border-top-color: #e62117;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+    }
+  </style>
 </head>
-
 <body>
-  <main>
-    <h1 class="title">Welcome to HTML on Replit!</h1>
-    <p class="description">Get started by editing
-      <code class="code">index.html</code>. The webview will auto-refresh as you edit! (See <code
-        class="code">README.md</code> if you want to
-      disable auto-refresh.)
-    </p>
 
-    <section class="grid">
-      <a href="https://replit.com/learn" class='card'>
-        <h2>Learn &rarr;</h2>
-        <p>Find tutorials on Replit to learn more.</p>
-      </a>
+  <h1>YouTube Video Downloader</h1>
 
-      <a href="https://docs.replit.com/category/deployments" class='card'>
-        <h2>Deploy &rarr;</h2>
-        <p>
-          After you are happy with this app, deploy it on Replit!
-        </p>
-      </a>
-    </section>
-  </main>
+  <div class="container">
+    <input type="text" id="searchQuery" placeholder="Search YouTube videos" />
+    <button onclick="searchYouTube()">Search</button>
+    <div id="searchResults"></div>
+  </div>
 
-  <script type="module" src="script.js"></script>
+  <div class="container">
+    <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL here" />
+    <button onclick="downloadVideo()">Download Video / Audio</button>
+
+    <div class="result" id="result"></div>
+    <!-- Download Another button will be appended here -->
+  </div>
+
+  <script>
+    const apiKey = 'AIzaSyAmbNKphTY8DaCh2pGZJvl4OTjFT-sLS7Q';
+
+    // YouTube URL validation (includes shorts)
+    function isValidYouTubeUrl(url) {
+      const regex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/|shorts\/)[\w-]{11}(\S*)?|youtu\.be\/[\w-]{11}(\S*)?)$/;
+      return regex.test(url);
+    }
+
+    // Detect if URL is YouTube Shorts
+    function isYouTubeShorts(url) {
+      return /youtube\.com\/shorts\//.test(url);
+    }
+
+    // Search YouTube and show thumbnails + titles
+    function searchYouTube() {
+      const query = document.getElementById('searchQuery').value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      resultsDiv.innerHTML = 'Searching...';
+
+      if (!query) {
+        resultsDiv.innerHTML = "<p style='color:red;'>Please enter a search term.</p>";
+        return;
+      }
+
+      fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=5&q=${encodeURIComponent(query)}&key=${apiKey}`)
+        .then(res => res.json())
+        .then(data => {
+          if (!data.items || data.items.length === 0) {
+            resultsDiv.innerHTML = "<p>No results found.</p>";
+            return;
+          }
+
+          resultsDiv.innerHTML = data.items.map(item => {
+            const videoId = item.id.videoId;
+            const title = item.snippet.title;
+            const thumbnail = item.snippet.thumbnails.default.url;
+            return `
+              <div onclick="selectVideo('${videoId}')" title="${title}">
+                <img src="${thumbnail}" alt="${title}" />
+                <span>${title}</span>
+              </div>
+            `;
+          }).join('');
+        })
+        .catch(err => {
+          console.error(err);
+          resultsDiv.innerHTML = "<p style='color:red;'>Error fetching search results.</p>";
+        });
+    }
+
+    // When user clicks a search result, set URL input and start download
+    function selectVideo(videoId) {
+      const urlInput = document.getElementById('youtubeUrl');
+      urlInput.value = `https://www.youtube.com/watch?v=${videoId}`;
+      document.getElementById('searchResults').innerHTML = '';
+      downloadVideo();
+    }
+
+    function downloadVideo() {
+      const url = document.getElementById('youtubeUrl').value.trim();
+      const resultDiv = document.getElementById('result');
+      resultDiv.innerHTML = '';
+
+      // Remove old Download Another button if exists
+      const oldBtn = document.getElementById('downloadAnotherBtn');
+      if (oldBtn) oldBtn.remove();
+
+      if (!isValidYouTubeUrl(url)) {
+        resultDiv.innerHTML = "<p style='color:red;'>Please enter a valid YouTube URL (supports regular and Shorts links).</p>";
+        return;
+      }
+
+      // Show spinner while fetching
+      resultDiv.innerHTML = '<div class="spinner"></div>';
+
+      // API endpoints
+      const videoApi = isYouTubeShorts(url)
+        ? 'https://api.giftedtech.web.id/api/download/ytmp4'
+        : 'https://api.giftedtech.web.id/api/download/ytv';
+
+      const audioApi = 'https://api.giftedtech.web.id/api/download/mp3';
+
+      // Fetch video data
+      fetch(`${videoApi}?apikey=gifted&url=${encodeURIComponent(url)}`)
+        .then(res => res.json())
+        .then(videoData => {
+          if (!videoData.success) {
+            throw new Error('Failed to fetch video.');
+          }
+
+          const video = videoData.result;
+          if (video.error) {
+            throw new Error(video.error);
+          }
+
+          // Fetch audio data
+          fetch(`${audioApi}?apikey=gifted&url=${encodeURIComponent(url)}`)
+            .then(res => res.json())
+            .then(audioData => {
+              if (!audioData.success || audioData.result.error) {
+                // If audio fetch fails, just show video download buttons
+                displayResults(video, null, resultDiv);
+              } else {
+                displayResults(video, audioData.result, resultDiv);
+              }
+              addDownloadAnotherBtn();
+            })
+            .catch(() => {
+              // If audio fetch fails, just show video download buttons
+              displayResults(video, null, resultDiv);
+              addDownloadAnotherBtn();
+            });
+        })
+        .catch(err => {
+          console.error(err);
+          resultDiv.innerHTML = `<p style='color:red;'>${err.message || 'An error occurred while processing.'}</p>`;
+        });
+    }
+
+    function displayResults(video, audio, container) {
+      let qualityButtons = '';
+
+      // Video download buttons
+      if (Array.isArray(video.url)) {
+        qualityButtons += video.url.map(v =>
+          `<a class="download-btn" href="${v.url}" target="_blank" rel="noopener noreferrer">Download ${v.quality}</a>`
+        ).join('');
+      } else if (video.download_url) {
+        qualityButtons += `<a class="download-btn" href="${video.download_url}" target="_blank" rel="noopener noreferrer">Download Video</a>`;
+      } else if (video.url && typeof video.url === 'string') {
+        qualityButtons += `<a class="download-btn" href="${video.url}" target="_blank" rel="noopener noreferrer">Download Video</a>`;
+      } else {
+        qualityButtons += `<p>No video download link available.</p>`;
+      }
+
+      // Audio download button
+      if (audio && (audio.url || audio.download_url)) {
+        const audioUrl = audio.url || audio.download_url;
+        qualityButtons += `<a class="download-btn" href="${audioUrl}" target="_blank" rel="noopener noreferrer" style="background:#007bff;">Download MP3</a>`;
+      }
+
+      container.innerHTML = `
+        <img src="${video.thumbnail}" alt="Thumbnail" />
+        <div>${qualityButtons}</div>
+      `;
+    }
+
+    function addDownloadAnotherBtn() {
+      const container = document.querySelector('.container:nth-of-type(2)');
+      if (!document.getElementById('downloadAnotherBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'downloadAnotherBtn';
+        btn.textContent = 'Download Another';
+        btn.onclick = () => {
+          document.getElementById('youtubeUrl').value = '';
+          document.getElementById('result').innerHTML = '';
+          const oldBtn = document.getElementById('downloadAnotherBtn');
+          if (oldBtn) oldBtn.remove();
+        };
+        container.appendChild(btn);
+      }
+    }
+  </script>
 
 </body>
-
 </html>
