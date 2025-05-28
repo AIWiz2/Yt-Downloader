@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "serve -s dist -l 8080"
+    "start": "serve -s dist -l 8000"
   },
   "dependencies": {
-    "vite": "^5.4.8",
-    "serve": "^14.2.4"
+    "serve": "^14.2.4",
+    "vite": "^5.4.8"
   }
 }
